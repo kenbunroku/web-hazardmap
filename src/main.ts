@@ -140,7 +140,7 @@ map.on("load", () => {
       jisuberi_layer: "地滑り",
     },
     overLayers: {
-      hillshade: "地形/影",
+      hillshade: "地形",
     },
   });
   map.addControl(hazardLayers, "top-left");
