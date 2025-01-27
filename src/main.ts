@@ -139,6 +139,9 @@ map.on("load", () => {
       kyukeisha_layer: "急傾斜地",
       jisuberi_layer: "地滑り",
     },
+    overLayers: {
+      hillshade: "地形",
+    },
   });
   map.addControl(hazardLayers, "top-left");
 
