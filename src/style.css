@@ -93,3 +93,7 @@ body {
     margin-right: 10px !important;
   }
 }
+
+.maplibregl-ctrl-group:nth-child(2) hr {
+  border-width: 0;
+}
