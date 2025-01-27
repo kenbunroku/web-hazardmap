@@ -179,7 +179,7 @@ export const mapConfig: maplibre.MapOptions = {
         type: "background",
         paint: {
           "background-color": "#000", // レイヤーの色を設定
-          "background-opacity": 0.2, // 不透明度を設定
+          "background-opacity": 0, // 不透明度を設定
         },
       },
       {
