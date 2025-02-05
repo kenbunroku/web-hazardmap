@@ -1,11 +1,24 @@
 import maplibre from "maplibre-gl";
 import { useGsiTerrainSource } from "maplibre-gl-gsi-terrain";
 
-import shelterPointData from "./data/10000_1.json";
-import tokyoShelterPointData from "./data/test.json";
+import gunmaPointData from "./data/gunma.json";
+import chibaPointData from "./data/chiba.json";
+import kanagawaPointData from "./data/kanagawa.json";
+import saitamaPointData from "./data/saitama.json";
+import tokyoShelterPointData from "./data/tokyo.json";
 
 import type { DistanceGeojson } from "./types";
-import type { FeatureCollection } from "geojson";
+import { FeatureCollection } from "geojson";
+
+const shelterPointData: FeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    ...(gunmaPointData as FeatureCollection).features,
+    ...(chibaPointData as FeatureCollection).features,
+    ...(kanagawaPointData as FeatureCollection).features,
+    ...(saitamaPointData as FeatureCollection).features,
+  ],
+};
 
 const gsiTerrainSource = useGsiTerrainSource(maplibre.addProtocol);
 
@@ -417,5 +430,14 @@ export const mapConfig: maplibre.MapOptions = {
 
 export const initializeMap = () => {
   const map = new maplibre.Map(mapConfig);
+  // tokyo_shelter_pointレイヤーのマウスイベント
+  map.on(
+    "mouseenter",
+    "tokyo_shelter_point",
+    () => (map.getCanvas().style.cursor = "pointer")
+  );
+  map.on("mouseleave", "tokyo_shelter_point", () => {
+    map.getCanvas().style.cursor = "";
+  });
   return map;
 };
