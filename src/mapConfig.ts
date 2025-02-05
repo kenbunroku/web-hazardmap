@@ -2,6 +2,7 @@ import maplibre from "maplibre-gl";
 import { useGsiTerrainSource } from "maplibre-gl-gsi-terrain";
 
 import shelterPointData from "./data/10000_1.json";
+import tokyoShelterPointData from "./data/test.json";
 
 import type { DistanceGeojson } from "./types";
 import type { FeatureCollection } from "geojson";
@@ -132,6 +133,15 @@ export const mapConfig: maplibre.MapOptions = {
         cluster: true, // クラスタリングの有効化
         clusterMaxZoom: 12, // クラスタリングを開始するズームレベル
         clusterRadius: 50, // クラスタリングの半径
+      },
+      tokyo_shelter: {
+        type: "geojson",
+        data: tokyoShelterPointData as FeatureCollection,
+        attribution:
+          '<a href="https://www.bousai.metro.tokyo.lg.jp/bousai/1000026/1000316.html" target="_blank">東京都避難所、避難場所データ オープンデータ</a>',
+        cluster: true,
+        clusterMaxZoom: 12,
+        clusterRadius: 50,
       },
       gsi_vector: {
         // 地理院ベクトル
@@ -281,6 +291,50 @@ export const mapConfig: maplibre.MapOptions = {
           "circle-radius": 8, // ポイントのサイズ
           "circle-stroke-width": 2, // ポイントの枠線の太さ
           "circle-stroke-color": "#fff", // ポイントの枠線の色
+        },
+      },
+      {
+        id: "tokyo_shelter_clusters",
+        source: "tokyo_shelter",
+        type: "circle",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": "#0BB1AF",
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            20,
+            100,
+            30,
+            750,
+            40,
+          ],
+          "circle-blur": 0.3,
+        },
+      },
+      {
+        id: "tokyo_shelter_count",
+        source: "tokyo_shelter",
+        type: "symbol",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": "{point_count_abbreviated}",
+          "text-size": 12,
+        },
+        paint: {
+          "text-color": "#fff",
+        },
+      },
+      {
+        id: "tokyo_shelter_point",
+        source: "tokyo_shelter",
+        type: "circle",
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-color": "#0BB1AF",
+          "circle-radius": 8,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#fff",
         },
       },
       {

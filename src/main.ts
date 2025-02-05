@@ -8,6 +8,7 @@ import "@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css";
 import { OpacityControl } from "./OpacityControl";
 
 import shelterPointData from "./data/10000_1.json";
+import tokyoShelterPointData from "./data/test.json";
 import hazardLegendData from "./data/hazard_legend.json";
 
 import * as tilebelt from "@mapbox/tilebelt";
@@ -57,7 +58,10 @@ const distanceLine: DistanceLine = {
 const map = initializeMap();
 
 // 検索処理の設定
-const geocoderApi = createSearchApi(shelterPointData);
+const geocoderApi = createSearchApi([
+  ...shelterPointData.features,
+  ...tokyoShelterPointData.features,
+]);
 
 // MaplibreGeocoderの追加
 map.addControl(
@@ -141,6 +145,7 @@ map.on("load", () => {
     },
     overLayers: {
       hillshade: "地形",
+      building: "3D建物",
     },
   });
   map.addControl(hazardLayers, "top-left");
@@ -306,7 +311,7 @@ map.on("click", (e) => {
 
   // 避難所の地物を取得
   const features = map.queryRenderedFeatures(e.point, {
-    layers: ["shelter_point"],
+    layers: ["shelter_point", "tokyo_shelter_point"], // 両方のレイヤーを対象にする
   });
 
   if (features.length === 0) {
@@ -320,15 +325,51 @@ map.on("click", (e) => {
   const coordinates = feature.geometry.coordinates as [number, number];
 
   const prop = feature.properties;
-  const name = prop["施設・場所名"];
-  const address = prop["住所"];
+  // レイヤーIDによって表示内容を分岐
+  const name =
+    feature.layer.id === "tokyo_shelter_point"
+      ? prop["避難所_施設名称"]
+      : prop["施設・場所名"];
+  const address =
+    feature.layer.id === "tokyo_shelter_point"
+      ? prop["所在地住所"]
+      : prop["住所"];
+
+  // バリアフリー情報の取得（東京避難所データの場合のみ）
+  let barrierFreeInfo = "なし";
+  if (feature.layer.id === "tokyo_shelter_point") {
+    const items = [];
+    if (prop["エレベーター有/\n避難スペースが１階"] === "○")
+      items.push("エレベーター有/避難スペースが１階");
+    if (prop["スロープ等"] === "○") items.push("スロープ有");
+    if (prop["点字ブロック"] === "○") items.push("点字ブロック有");
+    if (prop["車椅子使用者対応トイレ"] === "○")
+      items.push("車椅子対応トイレ有");
+    if (prop["その他"]) items.push(prop["その他"]);
+
+    if (items.length > 0) {
+      barrierFreeInfo = `<ul style="margin: 0; padding-left: 20px;">
+        ${items.map((item) => `<li>${item}</li>`).join("")}
+      </ul>`;
+    }
+  }
 
   popup = new maplibre.Popup({
     maxWidth: "300px",
     offset: [0, -15],
   })
     .setLngLat(coordinates)
-    .setHTML(`<h2>${name}</h2><p>住所:${address}</p>`)
+    .setHTML(
+      `
+      <h2 style="margin: 4px 0 8px 0;">${name}</h2>
+      <div>
+        ${address}
+        <hr />
+        <b>バリアフリー情報</b>
+        ${barrierFreeInfo}
+      </div>
+    `
+    )
     .addTo(map);
 });
 
