@@ -7,8 +7,11 @@ import "@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css";
 
 import { OpacityControl } from "./OpacityControl";
 
-import shelterPointData from "./data/10000_1.json";
-import tokyoShelterPointData from "./data/test.json";
+import gunmaPointData from "./data/gunma.json";
+import chibaPointData from "./data/chiba.json";
+import kanagawaPointData from "./data/kanagawa.json";
+import saitamaPointData from "./data/saitama.json";
+import tokyoShelterPointData from "./data/tokyo.json";
 import hazardLegendData from "./data/hazard_legend.json";
 
 import * as tilebelt from "@mapbox/tilebelt";
@@ -19,7 +22,6 @@ import turfDissolve from "@turf/dissolve";
 
 import { initializeMap } from "./mapConfig";
 import { createSearchApi } from "./search";
-// import { initializeHazardInfo } from "./hazardInfo";
 
 // 型の読み込み
 import type {
@@ -36,6 +38,16 @@ import type {
   DistanceLine,
   DistancePoint,
 } from "./types";
+
+const shelterPointData: FeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    ...(gunmaPointData as FeatureCollection).features,
+    ...(chibaPointData as FeatureCollection).features,
+    ...(kanagawaPointData as FeatureCollection).features,
+    ...(saitamaPointData as FeatureCollection).features,
+  ],
+};
 
 // 距離計測のGeoJSON
 const distanceGeojson: DistanceGeojson = {
@@ -57,11 +69,29 @@ const distanceLine: DistanceLine = {
 
 const map = initializeMap();
 
-// 検索処理の設定
-const geocoderApi = createSearchApi([
-  ...shelterPointData.features,
-  ...tokyoShelterPointData.features,
-]);
+// 東京データを正規化する
+const normalizedTokyoData = tokyoShelterPointData.features.map((feature) => ({
+  ...feature,
+  properties: {
+    ...feature.properties,
+    // プロパティ名を統一
+    "施設・場所名": feature.properties["施設名"],
+    住所: feature.properties["所在地住所"],
+    // 参考までに表示用プロパティも追加
+    text: feature.properties["施設名"],
+    place_name: feature.properties["施設名"],
+  },
+  // geometry が Point の場合、center を整える
+  center: feature.geometry.coordinates,
+}));
+
+// 全国データと東京データを統合
+const combinedData = {
+  features: [...shelterPointData.features, ...normalizedTokyoData],
+};
+
+// createSearchApi を呼び出す際に正規化済みの統合データを渡す
+const geocoderApi = createSearchApi(combinedData);
 
 // MaplibreGeocoderの追加
 map.addControl(
@@ -328,15 +358,22 @@ map.on("click", (e) => {
   // レイヤーIDによって表示内容を分岐
   const name =
     feature.layer.id === "tokyo_shelter_point"
-      ? prop["避難所_施設名称"]
+      ? prop["施設名"]
       : prop["施設・場所名"];
   const address =
     feature.layer.id === "tokyo_shelter_point"
       ? prop["所在地住所"]
       : prop["住所"];
+  const hazard = prop["対応災害"];
+  const hazardInfo =
+    hazard
+      ?.replace(/[\[\]"]/g, "") // 角括弧と引用符を除去
+      .split(",")
+      .map((item: string) => item.trim()) // 各項目の前後の空白を除去
+      .join(", ") || "記載なし";
 
   // バリアフリー情報の取得（東京避難所データの場合のみ）
-  let barrierFreeInfo = "なし";
+  let barrierFreeInfo = "記載なし";
   if (feature.layer.id === "tokyo_shelter_point") {
     const items = [];
     if (prop["エレベーター有/\n避難スペースが１階"] === "○")
@@ -363,7 +400,9 @@ map.on("click", (e) => {
       `
       <h2 style="margin: 4px 0 8px 0;">${name}</h2>
       <div>
-        ${address}
+        <p>${address}</p>
+        <b>対応災害</b>
+        <p style="margin: 0;">${hazardInfo}</p>
         <hr />
         <b>バリアフリー情報</b>
         ${barrierFreeInfo}
