@@ -518,7 +518,9 @@ const setBuffer = (val: number) => {
     source.setData(bufferPolygon);
     return;
   }
-  const features = map.querySourceFeatures("shelter");
+  const shelterFeatures = map.querySourceFeatures("shelter");
+  const tokyoFeatures = map.querySourceFeatures("tokyo_shelter");
+  const features = [...shelterFeatures, ...tokyoFeatures];
   if (!features.length) return;
 
   // 円形のポリゴンの生成
